@@ -13,6 +13,7 @@ WP_LOCALE=$(get_config_value 'locale' 'en_US')
 WP_TYPE=$(get_config_value 'wp_type' "single")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
+DB_PREFIX=`get_config_value 'db_prefix' "wp_"`
 
 # Make a database, if we don't already have one
 setup_database() {
@@ -88,6 +89,14 @@ END_HEREDOC
   fi
 }
 
+wp_cli_config() {
+  echo " * Copying the sites wp-cli config template"
+  if [ -f "${VVV_PATH_TO_SITE}/provision/wp-cli-custom.yml" ]; then
+    echo " * A wp-cli-custom.yml file was found"
+    cp -f "${VVV_PATH_TO_SITE}/provision/wp-cli-custom.yml" "${VVV_PATH_TO_SITE}/wp-cli-custom.yml"
+  fi
+}
+
 setup_wp_config_constants(){
   set +e
   shyaml get-values-0 -q "sites.${VVV_SITE_NAME}.custom.wpconfig_constants" < "${VVV_CONFIG}" |
@@ -110,6 +119,7 @@ restore_db_backup() {
   noroot wp config set DB_PASSWORD "wp"
   noroot wp config set DB_HOST "localhost"
   noroot wp config set DB_NAME "${DB_NAME}"
+  noroot wp config set table_prefix "${DB_PREFIX}"
   noroot wp db import "${1}"
   echo " * Installed database backup"
 }
@@ -122,7 +132,7 @@ download_wordpress() {
 
 initial_wpconfig() {
   echo " * Setting up wp-config.php"
-  noroot wp core config --dbname="${DB_NAME}" --dbuser=wp --dbpass=wp  --extra-php <<PHP
+  noroot wp core config --dbname="${DB_NAME}" --dbprefix="${DB_PREFIX}" --dbuser=wp --dbpass=wp  --extra-php <<PHP
 define( 'WP_DEBUG', true );
 define( 'SCRIPT_DEBUG', true );
 PHP
@@ -216,6 +226,7 @@ else
 fi
 
 copy_nginx_configs
+wp_cli_config
 setup_wp_config_constants
 install_plugins
 install_themes
