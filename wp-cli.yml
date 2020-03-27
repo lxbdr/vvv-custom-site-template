@@ -1,1 +1,5 @@
 path: public_html
+@development:
+  ssh: {vvv_ssh_development}
+@staging:
+  ssh: {vvv_ssh_staging}
