@@ -1,5 +1,5 @@
 path: public_html
 @development:
-  ssh: {vvv_ssh_development}
+  ssh: {dev_wp_cli}
 @staging:
-  ssh: {vvv_ssh_staging}
+  ssh: {stag_wp_cli}
