@@ -33,10 +33,10 @@ STAG_URL=$(get_config_value 'staging_url' '')
 
     sed -i "s#{devpath}#${VVV_PATH_TO_SITE}#g" "${VVV_PATH_TO_SITE}/sync.sh"
     sed -i "s#{devurl}#http://${DEV_URL}#g" "${VVV_PATH_TO_SITE}/sync.sh"
-    sed -i "s#{devwppath}#${VVV_PATH_TO_SITE}/public_html#" "${VVV_PATH_TO_SITE}/sync.sh"
-    sed -i "s#{staghost}#${STAG_HOST}#" "${VVV_PATH_TO_SITE}/sync.sh"
-    sed -i "s#{stagurl}#${STAG_URL}#" "${VVV_PATH_TO_SITE}/sync.sh"
-    sed -i "s#{stagwppath}#${STAG_WPPATH}g#" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{devwppath}#${VVV_PATH_TO_SITE}/public_html#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{staghost}#${STAG_HOST}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{stagurl}#${STAG_URL}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{stagwppath}#${STAG_WPPATH}#g" "${VVV_PATH_TO_SITE}/sync.sh"
 
   fi
 
