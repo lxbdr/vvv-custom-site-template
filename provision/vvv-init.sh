@@ -15,6 +15,41 @@ DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
 DB_PREFIX=`get_config_value 'db_prefix' "wp_"`
 
+
+setup_sync() {
+# variables for sync.sh and wp-cli.yml
+DEV_URL=$(get_primary_host)
+STAG_USER=$(get_config_value 'staging_user' '')
+STAG_HOST=$(get_config_value 'staging_host' '')
+STAG_PORT=$(get_config_value 'staging_port' '')
+STAG_WPPATH=$(get_config_value 'staging_path' '')
+STAG_URL=$(get_config_value 'staging_url' '')
+
+  # if file exists copy sync-template.sh to path_to_site/sync.sh and replace placeholders
+
+  if [ -f "/srv/config/sync-template.sh" ]; then
+
+    cp -f /srv/config/sync-template.sh ${VVV_PATH_TO_SITE}/sync.sh
+
+    sed -i "s#{devpath}#${VVV_PATH_TO_SITE}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{devurl}#http://${DEV_URL}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{devwppath}#${VVV_PATH_TO_SITE}/public_html#" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{staghost}#${STAG_HOST}#" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{stagurl}#${STAG_URL}#" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{stagwppath}#${STAG_WPPATH}g#" "${VVV_PATH_TO_SITE}/sync.sh"
+
+  fi
+
+# replace config.yml placeholderes
+
+  DEV_WP_CLI="vagrant@vvv${VVV_PATH_TO_SITE}/public_html"
+  STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
+
+  sed -i "#{dev_wp_cli}#${DEV_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  sed -i "#{stag_wp_cli}#${STAG_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
+}
+
+
 # Make a database, if we don't already have one
 setup_database() {
   echo -e " * Creating database '${DB_NAME}' (if it's not already there)"
@@ -227,6 +262,7 @@ fi
 
 copy_nginx_configs
 wp_cli_config
+setup_sync
 setup_wp_config_constants
 install_plugins
 install_themes
