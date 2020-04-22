@@ -45,8 +45,8 @@ STAG_URL=$(get_config_value 'staging_url' '')
   DEV_WP_CLI="vagrant@vvv${VVV_PATH_TO_SITE}/public_html"
   STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
 
-  sed -i "#{dev_wp_cli}#${DEV_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  sed -i "#{stag_wp_cli}#${STAG_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  sed -i "s#{dev_wp_cli}#${DEV_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  sed -i "s#{stag_wp_cli}#${STAG_WP_CLI}#g" "${VVV_PATH_TO_SITE}/wp-cli.yml"
 }
 
 
