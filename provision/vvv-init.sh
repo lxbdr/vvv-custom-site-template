@@ -13,17 +13,17 @@ WP_LOCALE=$(get_config_value 'locale' 'en_US')
 WP_TYPE=$(get_config_value 'wp_type' "single")
 DB_NAME=$(get_config_value 'db_name' "${VVV_SITE_NAME}")
 DB_NAME=${DB_NAME//[\\\/\.\<\>\:\"\'\|\?\!\*]/}
-DB_PREFIX=`get_config_value 'db_prefix' "wp_"`
+DB_PREFIX=$(get_config_value 'db_prefix' "wp_")
 
 
 setup_sync() {
-# variables for sync.sh and wp-cli.yml
-DEV_URL=$(get_primary_host)
-STAG_USER=$(get_config_value 'staging_user' '')
-STAG_HOST=$(get_config_value 'staging_host' '')
-STAG_PORT=$(get_config_value 'staging_port' '')
-STAG_WPPATH=$(get_config_value 'staging_path' '')
-STAG_URL=$(get_config_value 'staging_url' '')
+  # variables for sync.sh and wp-cli.yml
+  DEV_URL=$(get_primary_host)
+  STAG_USER=$(get_config_value 'staging_user' '')
+  STAG_HOST=$(get_config_value 'staging_host' '')
+  STAG_PORT=$(get_config_value 'staging_port' 22)
+  STAG_WPPATH=$(get_config_value 'staging_path' '')
+  STAG_URL=$(get_config_value 'staging_url' '')
 
   # if file exists copy sync-template.sh to path_to_site/sync.sh and replace placeholders
 
@@ -34,7 +34,8 @@ STAG_URL=$(get_config_value 'staging_url' '')
     sed -i "s#{devpath}#${VVV_PATH_TO_SITE}#g" "${VVV_PATH_TO_SITE}/sync.sh"
     sed -i "s#{devurl}#http://${DEV_URL}#g" "${VVV_PATH_TO_SITE}/sync.sh"
     sed -i "s#{devwppath}#${VVV_PATH_TO_SITE}/public_html#g" "${VVV_PATH_TO_SITE}/sync.sh"
-    sed -i "s#{staghost}#${STAG_HOST}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{staghost}#${STAG_USER}@${STAG_HOST}#g" "${VVV_PATH_TO_SITE}/sync.sh"
+    sed -i "s#{stagport}#${STAG_PORT}#g" "${VVV_PATH_TO_SITE}/sync.sh"
     sed -i "s#{stagurl}#${STAG_URL}#g" "${VVV_PATH_TO_SITE}/sync.sh"
     sed -i "s#{stagwppath}#${STAG_WPPATH}#g" "${VVV_PATH_TO_SITE}/sync.sh"
 
