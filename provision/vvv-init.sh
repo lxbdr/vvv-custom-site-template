@@ -21,14 +21,15 @@ if [ ! -z "${PUBLIC_DIR}" ]; then
   PUBLIC_DIR_PATH="${PUBLIC_DIR_PATH}/${PUBLIC_DIR}"
 fi
 
+# variables for sync.sh and wp-cli.yml
+DEV_URL=$(get_primary_host)
+STAG_USER=$(get_config_value 'staging_user' '')
+STAG_HOST=$(get_config_value 'staging_host' '')
+STAG_PORT=$(get_config_value 'staging_port' 22)
+STAG_WPPATH=$(get_config_value 'staging_path' '')
+STAG_URL=$(get_config_value 'staging_url' '')
+
 setup_sync() {
-  # variables for sync.sh and wp-cli.yml
-  DEV_URL=$(get_primary_host)
-  STAG_USER=$(get_config_value 'staging_user' '')
-  STAG_HOST=$(get_config_value 'staging_host' '')
-  STAG_PORT=$(get_config_value 'staging_port' 22)
-  STAG_WPPATH=$(get_config_value 'staging_path' '')
-  STAG_URL=$(get_config_value 'staging_url' '')
 
   # if file exists copy sync-template.sh to path_to_site/sync.sh and replace placeholders
 
@@ -231,14 +232,6 @@ update_wp() {
   fi
 }
 
-wp_cli_config() {
-  echo " * Copying the sites wp-cli config template"
-  if [ -f "${VVV_PATH_TO_SITE}/provision/wp-cli-custom.yml" ]; then
-    echo " * A wp-cli-custom.yml file was found"
-    cp -f "${VVV_PATH_TO_SITE}/provision/wp-cli-custom.yml" "${VVV_PATH_TO_SITE}/wp-cli-custom.yml"
-  fi
-}
-
 setup_cli() {
   rm -f "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "# auto-generated file" > "${VVV_PATH_TO_SITE}/wp-cli.yml"
@@ -250,14 +243,19 @@ setup_cli() {
   echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
 
-  STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
+  if [ -z "${STAG_USER}" ] || [ -z "${STAG_HOST}" ]
+  then
+    echo "STAG variables are not set"
+  else
+    STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
 
-  # wp_cli aliases for sync script
-  echo "@development:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "@staging:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "  ssh: ${STAG_WP_CLI}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    # wp_cli aliases for sync script
+    echo "@development:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    echo "@staging:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    echo "  ssh: ${STAG_WP_CLI}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  fi
 }
 
 cd "${VVV_PATH_TO_SITE}"
