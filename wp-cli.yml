@@ -1,5 +1,0 @@
-path: public_html
-@development:
-  ssh: {dev_wp_cli}
-@staging:
-  ssh: {stag_wp_cli}
