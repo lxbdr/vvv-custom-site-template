@@ -277,6 +277,7 @@ else
     initial_wpconfig
   fi
 
+  switch_php_debugmod xdebug
   if ! $(noroot wp core is-installed ); then
     echo " * WordPress is present but isn't installed to the database, checking for SQL dumps in wp-content/database.sql or the main backup folder."
     if [ -f "${PUBLIC_DIR_PATH}/wp-content/database.sql" ]; then
@@ -289,6 +290,7 @@ else
   else
     update_wp
   fi
+  switch_php_debugmod none
 fi
 
 copy_nginx_configs
