@@ -248,11 +248,11 @@ setup_cli() {
     echo "STAG variables are not set"
   else
     STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
+    DEV_WP_CLI="$vagrant@${DOMAIN}:22${VVV_PATH_TO_SITE}"
 
     # wp_cli aliases for sync script
     echo "@development:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-    echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-    echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+    echo "  ssh: ${DEV_WP_CLI} >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
     echo "@staging:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
     echo "  ssh: ${STAG_WP_CLI}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   fi
