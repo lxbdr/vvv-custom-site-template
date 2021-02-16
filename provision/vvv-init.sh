@@ -248,7 +248,7 @@ setup_cli() {
     echo "STAG variables are not set"
   else
     STAG_WP_CLI="${STAG_USER}@${STAG_HOST}:${STAG_PORT}${STAG_WPPATH}"
-    DEV_WP_CLI="vagrant@${DOMAIN}:22${VVV_PATH_TO_SITE}"
+    DEV_WP_CLI="vagrant@${DOMAIN}:22${PUBLIC_DIR_PATH}"
 
     # wp_cli aliases for sync script
     echo "@development:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
