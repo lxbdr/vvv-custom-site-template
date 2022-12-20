@@ -115,12 +115,16 @@ copy_nginx_configs() {
     LIVE_URL=$(echo "${LIVE_URL}" | sed 's|https://||' | sed 's|http://||'  | sed 's:/*$::')
 
     redirect_config=$((cat <<END_HEREDOC
-if (!-e \$request_filename) {
-  rewrite ^/[_0-9a-zA-Z-]+(/wp-content/uploads/.*) \$1;
-}
-if (!-e \$request_filename) {
-  rewrite ^/wp-content/uploads/(.*)\$ \$scheme://${LIVE_URL}/wp-content/uploads/\$1 redirect;
-}
+    
+    location @prod_uploads {
+        rewrite ^(.*)/wp-content/uploads/(.*)\$ \$scheme://${LIVE_URL}/wp-content/uploads/\$2 break;
+    }
+    
+    location ~ "^/wp-content/uploads/(.*)\$" {
+        try_files $uri @prod_uploads;
+    
+    }
+    
 END_HEREDOC
     ) |
     # pipe and escape new lines of the HEREDOC for usage in sed
