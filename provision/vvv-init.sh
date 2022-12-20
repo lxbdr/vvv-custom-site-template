@@ -123,26 +123,10 @@ copy_nginx_configs() {
   LIVE_URL=$(get_config_value 'live_url' '')
   if [ ! -z "$LIVE_URL" ]; then
     echo " * Adding support for Live URL redirects to NGINX of the website's media"
-    # replace potential protocols, and remove trailing slashes
-    LIVE_URL=$(echo "${LIVE_URL}" | sed 's|https://||' | sed 's|http://||'  | sed 's:/*$::')
+    # remove trailing slashes
+    LIVE_URL=$(echo "${LIVE_URL}" | sed 's:/*$::')
 
-    redirect_config=$((cat <<END_HEREDOC
-    
-    location @prod_uploads {
-        rewrite ^(.*)/wp-content/uploads/(.*)\$ \$scheme://${LIVE_URL}/wp-content/uploads/\$2 break;
-    }
-    
-    location ~ "^/wp-content/uploads/(.*)\$" {
-        try_files $uri @prod_uploads;
-    
-    }
-    
-END_HEREDOC
-    ) |
-    # pipe and escape new lines of the HEREDOC for usage in sed
-    sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n\\1/g'
-    )
-    noroot sed -i -e "s|\(.*\){{LIVE_URL}}|\1${redirect_config}|" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+    noroot sed -i "s#{{LIVE_URL}}#${LIVE_URL}#" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
   else
     noroot sed -i "s#{{LIVE_URL}}##" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
   fi
