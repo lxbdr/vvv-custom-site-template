@@ -123,8 +123,8 @@ copy_nginx_configs() {
   LIVE_URL=$(get_config_value 'live_url' '')
   if [ ! -z "$LIVE_URL" ]; then
     echo " * Adding support for Live URL redirects to NGINX of the website's media"
-    # remove trailing slashes
-    LIVE_URL=$(echo "${LIVE_URL}" | sed 's:/*$::')
+    # replace potential protocols, and remove trailing slashes
+    LIVE_URL=$(echo "${LIVE_URL}" | sed 's|https://||' | sed 's|http://||'  | sed 's:/*$::')
 
     noroot sed -i "s#{{LIVE_URL}}#${LIVE_URL}#" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
   else
