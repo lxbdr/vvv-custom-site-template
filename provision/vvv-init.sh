@@ -70,12 +70,18 @@ setup_nginx_folders() {
 install_plugins() {
   WP_PLUGINS=$(get_config_value 'install_plugins' '')
   if [ ! -z "${WP_PLUGINS}" ]; then
+    isurl='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
     for plugin in ${WP_PLUGINS//- /$'\n'}; do
-      if [ ! $(noroot wp plugin is-installed "${plugin}") ]; then
-        echo " * Installing and activating plugin: '${plugin}'"
-        noroot wp plugin install "${plugin}" --activate
+      if [[ "${plugin}" =~ $isurl ]]; then
+        echo " ! Warning, a URL was found for this plugin, attempting install and activate with --force set for ${plugin}"
+        noroot wp plugin install "${plugin}" --activate --force
       else
-        echo " * The ${plugin} plugin is already installed."
+        if noroot wp plugin is-installed "${plugin}"; then
+          echo " * The ${plugin} plugin is already installed."
+        else
+          echo " * Installing and activating plugin: '${plugin}'"
+          noroot wp plugin install "${plugin}" --activate
+        fi
       fi
     done
   fi
@@ -84,12 +90,18 @@ install_plugins() {
 install_themes() {
   WP_THEMES=$(get_config_value 'install_themes' '')
   if [ ! -z "${WP_THEMES}" ]; then
+      isurl='(https?|ftp|file)://[-A-Za-z0-9\+&@#/%?=~_|!:,.;]*[-A-Za-z0-9\+&@#/%=~_|]'
       for theme in ${WP_THEMES//- /$'\n'}; do
-        if [ ! $(noroot wp theme is-installed "${theme}") ]; then
-          echo " * Installing theme: '${theme}'"
-          noroot wp theme install "${theme}"
+        if [[ "${theme}" =~ $isurl ]]; then
+          echo " ! Warning, a URL was found for this theme, attempting install of ${theme} with --force set"
+          noroot wp theme install --force "${theme}"
         else
-          echo " * The ${theme} theme is already installed."
+          if noroot wp theme is-installed "${theme}"; then
+            echo " * The ${theme} theme is already installed."
+          else
+            echo " * Installing theme: '${theme}'"
+            noroot wp theme install "${theme}"
+          fi
         fi
       done
   fi
@@ -171,10 +183,9 @@ download_wordpress() {
 
 initial_wpconfig() {
   echo " * Setting up wp-config.php"
-  noroot wp core config --dbname="${DB_NAME}" --dbprefix="${DB_PREFIX}" --dbuser=wp --dbpass=wp  --extra-php <<PHP
-define( 'WP_DEBUG', true );
-define( 'SCRIPT_DEBUG', true );
-PHP
+  noroot wp config create --dbname="${DB_NAME}" --dbprefix="${DB_PREFIX}" --dbuser=wp --dbpass=wp
+  noroot wp config set WP_DEBUG true --raw
+  noroot wp config set SCRIPT_DEBUG true --raw
 }
 
 maybe_import_test_content() {
@@ -187,7 +198,7 @@ maybe_import_test_content() {
     echo " * Activating the wordpress-importer"
     noroot wp plugin activate wordpress-importer
     echo " * Importing test data"
-    noroot wp import import.xml --authors=create
+    noroot wp import /tmp/import.xml --authors=create
     echo " * Cleaning up import.xml"
     rm /tmp/import.xml
     echo " * Test content installed"
@@ -235,10 +246,10 @@ setup_cli() {
   echo "# auto-generated file" > "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "path: \"${PUBLIC_DIR}\"" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "@vvv:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  echo "  ssh: vagrant" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "@${VVV_SITE_NAME}:" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
-  echo "  ssh: vagrant@${DOMAIN}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
+  echo "  ssh: vagrant" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
   echo "  path: ${PUBLIC_DIR_PATH}" >> "${VVV_PATH_TO_SITE}/wp-cli.yml"
 
   if [ -z "${STAG_USER}" ] || [ -z "${STAG_HOST}" ]

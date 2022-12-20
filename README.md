@@ -1,11 +1,15 @@
-# VVV Custom site template
+# VVV Custom Site Provisioner
 
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/6fc9d45abb02454aa052771bda2d40ff)](https://www.codacy.com/gh/Varying-Vagrant-Vagrants/custom-site-template?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Varying-Vagrant-Vagrants/custom-site-template&amp;utm_campaign=Badge_Grade)
 
 This tells VVV how to install WordPress and set up Nginx, great for doing development work or testing out plugins and themes.
 
+_Note that this repository is not a place to put your website. Create a new git repo to hold WordPress and the contents of `public_html`. See the VVV documentation for more details_
+
  - [Overview](#overview)
- - [Configuration Options](#configuration-options)
+ - [Custom Configuration Options](#custom-configuration-options)
+ - [Custom Nginx configs](#custom-nginx-configs)
+ - [Using Git for your site](#using-git-for-your-site)
  - [Examples](#examples)
 
 ## Overview
@@ -19,29 +23,53 @@ The supported environments are:
 - A subdirectory multisite
 - A blank folder for manual installation
 
-The Nginx configuration for this site can be overriden by creating a `provision/vvv-nginx-custom.conf`.
+## Custom Configuration Options
 
-## Configuration Options
+These are custom options unique to the custom site template, and go in the `custom:` section of the site in `config.yml`. For example here is how to use `wp_version`:
 
+```yaml
+  my-site:
+    repo: https://github.com/Varying-Vagrant-Vagrants/custom-site-template
+    hosts:
+      - foo.test
+    custom:
+      wp_version: nightly
+```
 
-| Key                      | Default                    | Description                                                                                                                                                                                                                                                                        |
-|--------------------------|----------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `admin_email`            | `admin@local.test`         | The email address of the initial admin user                                                                                                                                                                                                                                        |
-| `admin_password`         | `password`                 | The password for the initial admin user                                                                                                                                                                                                                                            |
-| `admin_user`             | `admin`                    | The name of the initial admin user                                                                                                                                                                                                                                                 |
-| `db_name`                | The sites name             | The name of the MySQL database to create and install to                                                                                                                                                                                                                           |
-| `db_prefix`              | `wp_`                      | The WP table prefix                                                                                                                                                                                                                                                               |
-| `delete_default_plugins` | `false`                    | Deletes the Hello Dolly and Akismet plugins on install                                                                                                                                                                                                                             |
-| `install_test_content`   | `false`                    | When first installing WordPress, run the importer and import standard test content from github.com/poststatus/wptest                                                                                                                                                               |
-| `public_dir`             | `public_html`              | Change the default folder inside the website's folder with the WP installation            |
-| `live_url`               |                            | The production site URL, this tells Nginx to redirect requests for assets to the production server if they're not found. This prevents the need to store those assets locally.                                                                                                     |
-| `locale`                 | `en_US`                    | The locale for WP Admin language                                                                                                                                                                                                                                                   |
-| `install_plugins`        |                            | A list/array of plugins to install and activate. Similar to the hosts array. These values are passed to the WP CLI plugin install command and take the same format.                                                                                                                |
-| `install_themes`         |                            | A list/array of themes to install. Similar to the hosts array. These values are passed to the WP CLI plugin install command and take the same format.                                                                                                                              |
-| `site_title`             | The first host of the site | The main name/title of the site, defaults to `sitename.test`                                                                                                                                                                                                                       |
-| `wp_type`                | `single`                   |  - `single` will create a standard WP install<br> - `subdomain` will create a subdomain multisite<br> - `subdirectory` will create a subdirectory multisite<br> - `none` will skip installing WordPress, and let you install WordPress manually (useful for custom folder layouts) |
-| `wp_version`             | `latest`                   | The version of WordPress to install if no installation is present                                                                                                                                                                                                                  |
+Below is a full list of the custom options this template implements:
 
+| Key                      | Type   | Default                    | Description                                                                                                                                                                                                                                                           |
+|--------------------------|--------|----------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `admin_email`            | string | `admin@local.test`         | The email address of the initial admin user                                                                                                                                                                                                                           |
+| `admin_password`         | string | `password`                 | The password for the initial admin user                                                                                                                                                                                                                               |
+| `admin_user`             | string | `admin`                    | The name of the initial admin user                                                                                                                                                                                                                                    |
+| `db_name`                | string | The sites name             | The name of the MySQL database to create and install to                                                                                                                                                                                                               |
+| `db_prefix`              | string | `wp_`                      | The WP table prefix                                                                                                                                                                                                                                                   |
+| `delete_default_plugins` | bool   | `false`                    | Deletes the Hello Dolly and Akismet plugins on install                                                                                                                                                                                                                |
+| `install_test_content`   | bool   | `false`                    | When first installing WordPress, run the importer and import standard test content from github.com/poststatus/wptest                                                                                                                                                  |
+| `public_dir`             | string | `public_html`              | Change the default folder inside the website's folder with the WP installation                                                                                                                                                                                        |
+| `live_url`               | string |                            | The production site URL, e.g. `https://example.com`. This tells Nginx to browser redirect requests for assets at `/wp-content/uploads` to the production server if they're not found. This prevents the need to store those assets locally.  <br>If you do not use the `wp-content/uploads` path then this will not work, and you should not add a trailing slash.                                                                                        |
+| `locale`                 | string | `en_US`                    | The locale for WP Admin language                                                                                                                                                                                                                                      |
+| `install_plugins`        | list   |                            | A list/array of plugins to install and activate. Similar to the hosts array. These values are passed to the WP CLI plugin install command and take the same format.                                                                                                   |
+| `install_themes`         | list   |                            | A list/array of themes to install. Similar to the hosts array. These values are passed to the WP CLI plugin install command and take the same format.                                                                                                                 |
+| `site_title`             | string | The first host of the site | The main name/title of the site, defaults to `sitename.test`                                                                                                                                                                                                          |
+| `wp_type`                | string | `single`                   | - `single` will create a standard WP install<br> - `subdomain` will create a subdomain multisite<br> - `subdirectory` will create a subdirectory multisite<br> - `none` will skip installing WordPress, and let you install WordPress manually (useful for custom folder layouts)  |
+| `wp_version`             | string | `latest`                   | The version of WordPress to install if no installation is present                                                                                                                                                                                                     |
+| `wpconfig_constants`     | list   |                            | A list/array of constants with their value to add to the wp-config.php                                                                                                                                                                                                |
+
+## Custom Nginx configs
+
+The Nginx configuration for this site can be overriden by creating a `provision/vvv-nginx-custom.conf` file. Copy the `provision/vvv-nginx-default.conf` file and make modifications, then reprovision, and VVV will use your `vvv-nginx-custom.conf` instead as the template.
+
+Note that if you make a mistake VVV may fail to provision, this normally happens when restarting Nginx. Make sure you test your configs, `vagrant ssh` followed by `sudo nginx -t` will validate the config file for basic errors. You may also see the default VVV error pages if your config file is valid but set up incorrectly. Also be sure to preserve the placeholders VVV uses so that features such as SSL certificates and the `nginx_upstream` parameter and others continue to work.
+
+Note that VVV will search and replace identifiers in brackets such as `{vvv_tls_key}`, and if these are removed then functionality from `config.yml` or SSL certificates may stop working. Some identifiers are implemented using `provision/provision.sh` in the custom site template, and will have double brackets, e.g. `{{LIVE_URL}}`.
+
+If you are looking to rename the `public_html` folder, you should use the `public_dir` parameter in `config.yml` instead of a custom Nginx config file.
+
+## Using Git for Your Site
+
+If you want to manage your site using `git`, you can do that inside the `public_html` folder. This git repo is just for the site template provisioner, you don't need to fork it. You can also set the `wp_type` to `none` and clone a git repo using the `folders:` feature. You might do this if your host has provided you with a git repository. See the examples below for a WordPress VIP site that uses a site in a git repository.
 
 ## Examples
 
