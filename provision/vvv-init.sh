@@ -67,6 +67,33 @@ setup_nginx_folders() {
   noroot mkdir -p "${PUBLIC_DIR_PATH}"
 }
 
+# @description Takes a string and replaces all instances of a token with a value
+function vvv_site_template_search_replace() {
+  local content="$1"
+  local token="$2"
+  local value="$3"
+
+  # Read the file contents and replace the token with the value
+  content=${content//$token/$value}
+  echo "${content}"
+}
+export -f vvv_site_template_search_replace
+
+# @description Takes a file, and replaces all instances of a token with a value
+function vvv_site_template_search_replace_in_file() {
+  local file="$1"
+
+  # Read the file contents and replace the token with the value
+  local content
+  if [[ -f "${file}" ]]; then
+    content=$(<"${file}")
+    vvv_site_template_search_replace "${content}" "${2}" "${3}"
+  else
+    return 1
+  fi
+}
+export -f vvv_site_template_search_replace_in_file
+
 install_plugins() {
   WP_PLUGINS=$(get_config_value 'install_plugins' '')
   if [ ! -z "${WP_PLUGINS}" ]; then
@@ -109,16 +136,16 @@ install_themes() {
 
 copy_nginx_configs() {
   echo " * Copying the sites Nginx config template"
+
+  local NCONFIG
+
   if [ -f "${VVV_PATH_TO_SITE}/provision/vvv-nginx-custom.conf" ]; then
     echo " * A vvv-nginx-custom.conf file was found"
-    noroot cp -f "${VVV_PATH_TO_SITE}/provision/vvv-nginx-custom.conf" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+    NCONFIG=$(vvv_site_template_search_replace_in_file "${VVV_PATH_TO_SITE}/provision/vvv-nginx-custom.conf" "{vvv_public_dir}" "${PUBLIC_DIR}")
   else
     echo " * Using the default vvv-nginx-default.conf, to customize, create a vvv-nginx-custom.conf"
-    noroot cp -f "${VVV_PATH_TO_SITE}/provision/vvv-nginx-default.conf" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+    NCONFIG=$(vvv_site_template_search_replace_in_file "${VVV_PATH_TO_SITE}/provision/vvv-nginx-default.conf" "{vvv_public_dir}" "${PUBLIC_DIR}")
   fi
-  
-  echo " * Applying public dir setting to Nginx config"
-  noroot sed -i "s#{vvv_public_dir}#/${PUBLIC_DIR}#" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
 
   LIVE_URL=$(get_config_value 'live_url' '')
   if [ ! -z "$LIVE_URL" ]; then
@@ -126,10 +153,26 @@ copy_nginx_configs() {
     # replace potential protocols, and remove trailing slashes
     LIVE_URL=$(echo "${LIVE_URL}" | sed 's|https://||' | sed 's|http://||'  | sed 's:/*$::')
 
-    noroot sed -i "s#{{LIVE_URL}}#${LIVE_URL}#" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+    redirect_config=$( (cat <<END_HEREDOC
+if (!-e \$request_filename) {
+  rewrite ^/[_0-9a-zA-Z-]+(/wp-content/uploads/.*) \$1;
+}
+if (!-e \$request_filename) {
+  rewrite ^/wp-content/uploads/(.*)\$ \$scheme://${LIVE_URL}/wp-content/uploads/\$1 redirect;
+}
+END_HEREDOC
+
+    )
+    )
+
+    NCONFIG=$(vvv_site_template_search_replace "${NCONFIG}" "{{LIVE_URL}}" "${redirect_config}")
   else
-    noroot sed -i "s#{{LIVE_URL}}##" "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+    NCONFIG=$(vvv_site_template_search_replace "${NCONFIG}" "{{LIVE_URL}}" "")
   fi
+
+  # Write out the new Nginx file for VVV to pick up.
+  noroot touch  "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
+  echo "${NCONFIG}" > "${VVV_PATH_TO_SITE}/provision/vvv-nginx.conf"
 }
 
 setup_wp_config_constants(){
@@ -194,9 +237,11 @@ install_wp() {
   ADMIN_USER=$(get_config_value 'admin_user' "admin")
   ADMIN_PASSWORD=$(get_config_value 'admin_password' "password")
   ADMIN_EMAIL=$(get_config_value 'admin_email' "admin@local.test")
+
   echo " * Installing using wp core install --url=\"${DOMAIN}\" --title=\"${SITE_TITLE}\" --admin_name=\"${ADMIN_USER}\" --admin_email=\"${ADMIN_EMAIL}\" --admin_password=\"${ADMIN_PASSWORD}\""
   noroot wp core install --url="${DOMAIN}" --title="${SITE_TITLE}" --admin_name="${ADMIN_USER}" --admin_email="${ADMIN_EMAIL}" --admin_password="${ADMIN_PASSWORD}"
   echo " * WordPress was installed, with the username '${ADMIN_USER}', and the password '${ADMIN_PASSWORD}' at '${ADMIN_EMAIL}'"
+
   if [ "${WP_TYPE}" = "subdomain" ]; then
     echo " * Running Multisite install using wp core multisite-install --subdomains --url=\"${DOMAIN}\" --title=\"${SITE_TITLE}\" --admin_name=\"${ADMIN_USER}\" --admin_email=\"${ADMIN_EMAIL}\" --admin_password=\"${ADMIN_PASSWORD}\""
     noroot wp core multisite-install --subdomains --url="${DOMAIN}" --title="${SITE_TITLE}" --admin_name="${ADMIN_USER}" --admin_email="${ADMIN_EMAIL}" --admin_password="${ADMIN_PASSWORD}"
@@ -206,12 +251,14 @@ install_wp() {
     noroot wp core multisite-install --url="${DOMAIN}" --title="${SITE_TITLE}" --admin_name="${ADMIN_USER}" --admin_email="${ADMIN_EMAIL}" --admin_password="${ADMIN_PASSWORD}"
     echo " * Multisite install complete"
   fi
+
   DELETE_DEFAULT_PLUGINS=$(get_config_value 'delete_default_plugins' '')
   if [ ! -z "${DELETE_DEFAULT_PLUGINS}" ]; then
     echo " * Deleting the default plugins akismet and hello dolly"
     noroot wp plugin delete akismet
     noroot wp plugin delete hello
   fi
+
   maybe_import_test_content
 }
 
@@ -270,7 +317,7 @@ else
     initial_wpconfig
   fi
 
-  if ! $(noroot wp core is-installed ); then
+  if ! $(noroot wp core is-installed); then
     echo " * WordPress is present but isn't installed to the database, checking for SQL dumps in wp-content/database.sql or the main backup folder."
     if [ -f "${PUBLIC_DIR_PATH}/wp-content/database.sql" ]; then
       restore_db_backup "${PUBLIC_DIR_PATH}/wp-content/database.sql"
